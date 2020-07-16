@@ -25,14 +25,21 @@ Port**
 
 # DIA 2
 
+## Definir qual amostra você vai analisar
+```
+SAMPLE="AMOSTRA_JOAQUIM_S17"
+```
+
+
 ## Criar a estrutura de diretórios para trabalhar;
 ```
 mkdir viroma
 mkdir viroma/fastq
+mkdir viroma/cutadapt
 mkdir viroma/bwa
 mkdir viroma/fastqc
-mkdir viroma/karken2
-mkdir reference
+mkdir viroma/kraken2
+mkdir viroma/reference/hg19
 ```
 
 ## Listar o diretório atual;
@@ -42,17 +49,17 @@ pwd
 
 ## Copiar os FASTQ para sua pasta de análise;
 ```
-cp /bioinfo/dados/NextSeq_RUN01/Files/Data/Intensities/BaseCalls/AMOSTRA01_S1*.fastq.gz dados/fastq/
+rsync --progress /data/FASTQ_VIROMA/${SAMPLE}* viroma/fastq/ viroma/fastq/
 ```
 
 ## Listar os arquivos copiados;
 ```
-ls -lh dados/fastq/*
+ls -lh viroma/fastq/
 ```
 
 ## Executar o FASTQC para avaliar a qualidade das sequencias produzidas;
 ```
-time fastqc -o viroma/fastqc viroma/fastq/AMOSTRA_JOAQUIM_S17_R1_001.fastq.gz dados/fastq/AMOSTRA_JOAQUIM_S17_R2_001.fastq.gz
+fastqc -o viroma/fastqc viroma/fastq/${SAMPLE}_R1_001.fastq.gz viroma/fastq/${SAMPLE}_R2_001.fastq.gz
 ```
 Manual do [FastQC](https://dnacore.missouri.edu/PDF/FastQC_Manual.pdf).</br>
 Exemplo de resultado [BOM](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/good_sequence_short_fastqc.html) e [RUIM](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/bad_sequence_fastqc.html).</br>
@@ -60,16 +67,16 @@ Exemplo de resultado [BOM](https://www.bioinformatics.babraham.ac.uk/projects/fa
 
 ## Remover os reads fora do padrão configurado no sequenciamento 75bp e Q20;
 ```
-time cutadapt --minimum-length 75 --maximum-length 200 \
-
--o viroma/fastq/AMOSTRA_JOAQUIM_S17_R1_001_cutadapt.fastq \
--p viroma/fastq/AMOSTRA_JOAQUIM_S17_R2_001_cutadapt.fastq \
-viroma/fastq/AMOSTRA_JOAQUIM_S17_R1_001.fastq.gz \
-viroma/fastq/AMOSTRA_JOAQUIM_S17_R1_001.fastq.gz 
+cutadapt --minimum-length 75 --maximum-length 200 \
+-q 20,20 --max-n 0 -u 9 -u -5 -U 9 -U -5 \
+-o viroma/cutadapt/${SAMPLE}_R1_001_cutadapt.fastq \
+-p viroma/cutadapt/${SAMPLE}_R2_001_cutadapt.fastq \
+viroma/fastq/${SAMPLE}_R1_001.fastq.gz \
+viroma/fastq/${SAMPLE}_R1_001.fastq.gz 
 ``` 
 ## Executar o FASTQC para avaliar a qualidade das sequencias produzidas após o cutadapt;
 ```
-time fastqc -o dados/fastqc dados/fastq/AMOSTRA01_S1_R1_001_cutadapt.fastq dados/fastq/AMOSTRA01_S1_R2_001_cutadapt.fastq
+fastqc -o viroma/fastqc viroma/cutadapt/${SAMPLE}_R1_001_cutadapt.fastq viroma/cutadapt/${SAMPLE}_R1_001_cutadapt.fastq
 ```
 
 ## Fazer download dos HTMLs gerados com o FastQC e comparar os dois, antes e depois do cutadapt
@@ -77,9 +84,9 @@ time fastqc -o dados/fastqc dados/fastq/AMOSTRA01_S1_R1_001_cutadapt.fastq dados
 ## Fazer download de um cromossomo Humano para utilizar como referencia na remoção de contaminantes
 ```
 # Mover para o diretório do seu genoma de referência
-cd referencia/
+cd viroma/reference/hg19
 pwd
-cp /dados/... .
+rsync --progress /data/chr13.fa .
 ```
 
 ## Criar o índice do BWA
@@ -89,8 +96,7 @@ bwa index -a bwtsw chr13.fa
 
 ## Gerar o índice do FASTA (genoma de referência)
 ```
-# reference.fa​  = chr13.fa
-samtools faidx reference.fa
+samtools faidx chr13.fa
 ```
 
 ## Mapear os FASTQ limpos contra o hg19;
@@ -101,39 +107,43 @@ NOME=NOME;
 Biblioteca=Biblioteca;
 Plataforma=Plataforma;
 
-time bwa mem -M -R "@RG\tID:CAP\tSM:$NOME\tLB:$Biblioteca\tPL:$Plataforma" \
-/bioinfo/referencia/hg19/chr1_13_17.fa \
-viroma/fastq/AMOSTRA_JOAQUIM_S17_R1_001_cutadapt.fastq \
-viroma/fastq/AMOSTRA_JOAQUIM_S17_R2_001_cutadapt.fastq >viroma/bwa/AMOSTRA_JOAQUIM_S17.sam
+bwa mem -M -R "@RG\tID:CAP\tSM:$NOME\tLB:$Biblioteca\tPL:$Plataforma" \
+viroma/reference/hg19/chr13.fa \
+viroma/cutadapt/${SAMPLE}_R1_001_cutadapt.fastq \
+viroma/cutadapt/${SAMPLE}_R2_001_cutadapt.fastq >viroma/bwa/${SAMPLE}.sam
 ```
 
 ## Utilizar o samtools: fixmate, sort e index
 ```
-time samtools fixmate viroma/bwa/AMOSTRA_JOAQUIM_S17.sam viroma/bwa/AMOSTRA_JOAQUIM_S17.bam
-time samtools sort -O bam -o viroma/bwa/AMOSTRA_JOAQUIM_S17_sorted.bam viroma/bwa/AMOSTRA_JOAQUIM_S17.bam
-time samtools index viroma/bwa/AMOSTRA_JOAQUIM_S17_sorted.bam
+samtools fixmate viroma/bwa/${SAMPLE}.sam viroma/bwa/${SAMPLE}.bam
+samtools sort -O bam -o viroma/bwa/${SAMPLE}_sorted.bam viroma/bwa/${SAMPLE}.bam
+samtools index viroma/bwa/${SAMPLE}_sorted.bam
 ```
 
 ## Visualizar o BAM com o samtools;
 ```
-time samtools view -H viroma/bwa/AMOSTRA_JOAQUIM_S17_sorted.bam
-time samtools view viroma/bwa/AMOSTRA_JOAQUIM_S17_sorted.bam
+samtools view -H viroma/bwa/${SAMPLE}_sorted.bam
+samtools view viroma/bwa/${SAMPLE}_sorted.bam
 ```
 
 ## Gerar FASTQ de reads não mapeados no genoma humano
 
 ```
-
+cd ~/
+samtools view -u -f 12 -b viroma/bwa/${SAMPLE}_sorted.bam > viroma/bwa/${SAMPLE}_sorted_unmapped.bam
+bamToFastq -i viroma/bwa/${SAMPLE}_sorted_unmapped.bam -fq viroma/bwa/${SAMPLE}_R1_unmapped_human.fastq -fq2 viroma/bwa/${SAMPLE}_R2_unmapped_human.fastq
 ```
 
 ## Identificação de patógenos com o Kraken2
 ```
-
+kraken2 -db /data/minikraken2_v2_8GB_201904_UPDATE --threads 1 --minimum-base-quality 20 --report viroma/kraken2/${SAMPLE}_kraken_report.txt\
+--paired viroma/bwa/${SAMPLE}_R1_unmapped_human.fastq viroma/bwa/${SAMPLE}_R2_unmapped_human.fastq > viroma/kraken2/${SAMPLE}_kraken2_NT.out
 ```
 
 ## Geração do relatório de diversidade 
 ```
-
+awk '{print $2"\t"$3}' viroma/kraken2/${SAMPLE}_kraken2_NT.out > viroma/kraken2/${SAMPLE}_kraken2_NT_2krona.tab
+ktImportTaxonomy viroma/kraken2/${SAMPLE}_kraken2_NT_2krona.tab -o viroma/kraken2/${SAMPLE}_classification.html
 ```
 
 ## Baixar o resultado e ver qual é o patógeno responsável pela patologia do paciente
