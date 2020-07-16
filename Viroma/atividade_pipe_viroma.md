@@ -72,7 +72,7 @@ cutadapt --minimum-length 75 --maximum-length 200 \
 -o viroma/cutadapt/${SAMPLE}_R1_001_cutadapt.fastq \
 -p viroma/cutadapt/${SAMPLE}_R2_001_cutadapt.fastq \
 viroma/fastq/${SAMPLE}_R1_001.fastq.gz \
-viroma/fastq/${SAMPLE}_R1_001.fastq.gz 
+viroma/fastq/${SAMPLE}_R2_001.fastq.gz 
 ``` 
 ## Executar o FASTQC para avaliar a qualidade das sequencias produzidas após o cutadapt;
 ```
