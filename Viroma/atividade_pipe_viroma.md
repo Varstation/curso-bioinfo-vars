@@ -39,7 +39,7 @@ mkdir viroma/cutadapt
 mkdir viroma/bwa
 mkdir viroma/fastqc
 mkdir viroma/kraken2
-mkdir viroma/reference/hg19
+mkdir -p viroma/reference/hg19
 ```
 
 ## Listar o diretório atual;
@@ -49,7 +49,7 @@ pwd
 
 ## Copiar os FASTQ para sua pasta de análise;
 ```
-rsync --progress /data/FASTQ_VIROMA/${SAMPLE}* viroma/fastq/ viroma/fastq/
+rsync --progress /data/FASTQ_VIROMA/${SAMPLE}* viroma/fastq/
 ```
 
 ## Listar os arquivos copiados;
