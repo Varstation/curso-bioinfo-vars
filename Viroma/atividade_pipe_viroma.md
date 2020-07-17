@@ -28,6 +28,9 @@ Port**
 ## Definir qual amostra você vai analisar
 ```
 SAMPLE="AMOSTRA_JOAQUIM_S17"
+#SAMPLE="AMOSTRA_MARIA_S19"
+#SAMPLE="AMOSTRA_PEDRO_S10"
+#SAMPLE="AMOSTRA_MARCELA_S12"
 ```
 
 
