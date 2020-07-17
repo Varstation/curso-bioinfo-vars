@@ -76,7 +76,7 @@ viroma/fastq/${SAMPLE}_R2_001.fastq.gz
 ``` 
 ## Executar o FASTQC para avaliar a qualidade das sequencias produzidas após o cutadapt;
 ```
-fastqc -o viroma/fastqc viroma/cutadapt/${SAMPLE}_R1_001_cutadapt.fastq viroma/cutadapt/${SAMPLE}_R1_001_cutadapt.fastq
+fastqc -o viroma/fastqc viroma/cutadapt/${SAMPLE}_R1_001_cutadapt.fastq viroma/cutadapt/${SAMPLE}_R2_001_cutadapt.fastq
 ```
 
 ## Fazer download dos HTMLs gerados com o FastQC e comparar os dois, antes e depois do cutadapt
